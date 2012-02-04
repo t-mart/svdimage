@@ -1,0 +1,8 @@
+.autotest
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/svd_image
+lib/svd_image.rb
+test/test_svd_image.rb
