@@ -8,6 +8,7 @@ require 'hoe'
 # Hoe.plugin :inline
 # Hoe.plugin :racc
 # Hoe.plugin :rubyforge
+Hoe.plugin :minitest
 
 Hoe.spec 'svd_image' do
   # HEY! If you fill these out in ~/.hoe_template/Rakefile.erb then
