@@ -1,44 +1,63 @@
-require 'gsl'
-include GSL
+require 'RMagick'
+include Magick
 
 class SvdImage
 
   VERSION = '1.0.0'
 
-  def SvdImage.svd a
-    begin
-      u, v, s = a.SV_decomp
-      return u, Matrix.diagonal(s), v.transpose
-    rescue ERROR::EUNIMPL
-      #for some reason, gsl hasn't implemented this, yet it seems pretty easy to
-      #fix. here's what's going on:
-      #u is v
-      #v is u
-      #transpose s
-      u, v, s = a.transpose.SV_decomp
-      return v, Matrix.diagonal(s).transpose, u.transpose
+  #k is the number of largest singular values
+  attr_reader :k
+  
+  #the lossless svd for each channel (no k truncation)
+  attr_reader :r_svd, :g_svd, :b_svd
+
+  #image is resulting RMagick image corresponding to k
+  #so, this image may be compressed
+  attr_reader :image
+
+  class << self
+    #in other words, RMagick can open it
+    def read_image_file path
+      img = Image.read(path)
+
+      r, g, b = [], [], []
+
+      #get all the 
+      #img.export_pixels(0, r, img.columns, 1, "RGB");
+      #test this
+      img.rows.each do |r|
+        r << img.export_pixels(0, r, img.columns, 1, "R")
+        g << img.export_pixels(0, r, img.columns, 1, "G")
+        b << img.export_pixels(0, r, img.columns, 1, "B")
+      end
+
+      end
+
+
+    end
+
+    #my own file format
+    def read_svd_file path
+
+    end
+
+    private :from_image_file, :from_svd_file
+
+    #choose one of the above methods based on file extension, or maybe some
+    #inspection?
+    def read path
+
     end
   end
 
-  def SvdImage.svd_truncate a, k
-    #k columns of U
-    #k-wide diagonal s (largest)
-    #k rows of V^T
-    u, s, v_t = SvdImage.svd a
-    return u.submatrix(nil, 0...k),
-      s.submatrix(0...k, 0...k),
-      v_t.submatrix(0...k, nil)
+  #generate :image from this truncation
+  def truncate k
+
+  end
+
+  #write out the image. if we haven't truncated, write out the original
+  #image.
+  def write path
+
   end
 end
-#http://www.gnu.org/software/gsl/manual/html_node/Singular-Value-Decomposition.html
-#The singular value decomposition of a matrix has many practical uses. The
-#condition number of the matrix is given by the ratio of the largest
-#singular value to the smallest singular value. The presence of a zero
-#singular value indicates that the matrix is singular. The number of
-#non-zero singular values indicates the rank of the matrix. In practice
-#singular value decomposition of a rank-deficient matrix will not
-#produce exact zeroes for singular values, due to finite numerical
-#precision. Small singular values should be edited by choosing a suitable
-#tolerance. 
-
-
