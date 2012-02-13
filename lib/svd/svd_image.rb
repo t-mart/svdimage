@@ -87,17 +87,17 @@ class SvdImage
     g_matrix = @g_svd.compose.to_a.flatten
     b_matrix = @b_svd.compose.to_a.flatten
 
-    image = RMagick::Image.new(cols, rows)
+    image = Magick::Image.new(cols, rows)
 
     data = ""
 
     pixels.times do |i|
-      data << r_matrix[i].round.pack("C")
-      data << g_matrix[i].round.pack("C")
-      data << b_matrix[i].round.pack("C")
+      data << [r_matrix[i].truncate].pack("C")
+      data << [g_matrix[i].truncate].pack("C")
+      data << [b_matrix[i].truncate].pack("C")
     end
 
-    image.import_pixels(0, 0, cols, rows, "RGB", data, charPixel)
+    image.import_pixels(0, 0, cols, rows, "RGB", data)
 
     @image = image
     return image

@@ -13,6 +13,8 @@ include GSL
 
 class Svd
 
+  VERSION = '1.0.0'
+
   attr_reader :a
   attr_reader :u, :s, :v_t
 
@@ -41,7 +43,7 @@ class Svd
         #v is u
         #transpose s
         u, v, s = a.transpose.SV_decomp
-        return v, Matrix.diagonal(s).transpose, u.transpose
+        return v, s, u.transpose
       end
     end
 
@@ -58,7 +60,8 @@ class Svd
   private_class_method :new
 
   def compose
-    return @u * s_diag * @v_t
+    @a ||= @u * s_diag * @v_t
+    return @a
   end
 
   def s_diag
@@ -67,7 +70,11 @@ class Svd
 
   #return a new svd object that's been truncated
   #note this doesn't affect the original u, s, and v_t
-  def truncate k, diag = true
+  def truncate k
+    raise(ArgumentError, "k may not be > than total singular values (#{n_sigmas}) or < 1") if k > n_sigmas || k < 1
+
+    return self if k == n_sigmas
+
     #k columns of U
     #k-wide diagonal s (largest)
     #k rows of V^T
@@ -81,12 +88,18 @@ class Svd
     return Svd.usvt(trun_u, trun_s, trun_v_t)
   end
 
+  def n_sigmas
+    @s.size
+  end
+
+  alias :n_singular_values :n_sigmas
+
   def rows
     @u.size1
   end
 
   def cols
-    @v_t.size1
+    @v_t.size2
   end
 
 end

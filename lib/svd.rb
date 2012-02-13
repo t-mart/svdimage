@@ -7,9 +7,9 @@ require 'svd/svd'
 require 'svd/svd_image'
 
 if __FILE__ == $0
-  img = SvdImage.read("tb.jpg")
+  img = SvdImage.read("test1.jpg")
 
-  img = img.truncate 20
+  img = img.truncate 1
 
   img.write("out.jpg")
 end

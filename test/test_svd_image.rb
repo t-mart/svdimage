@@ -1,5 +1,5 @@
 require "test/unit"
-require "svd_image"
+require "svd"
 
 class TestSvdImage < MiniTest::Unit::TestCase
 
