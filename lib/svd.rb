@@ -12,9 +12,32 @@ if __FILE__ == $0
   #i think png isn't utilizing palette because size says the same after
   #different truncations
 
-  svdimg = SvdImage.read "test1.png", :gray
+  infile = "wide.jpg"
+  colorspace = :rgb
 
-  svdimg = svdimg.truncate 100
+  truncate_to = 100
 
-  svdimg.write("out.jpg")
+  outfile = "out#{File.extname(infile)}"
+
+
+  puts "Let's do this!"
+  STDOUT.flush
+
+  print "SVD-ing image..."
+  STDOUT.flush
+  svdimg = SvdImage.read infile, colorspace
+  puts "done."
+  STDOUT.flush
+
+  print "Truncating SVD..."
+  STDOUT.flush
+  svdimg = svdimg.truncate truncate_to
+  puts "done."
+  STDOUT.flush
+
+  print "Writing image..."
+  STDOUT.flush
+  svdimg.write outfile
+  puts "done."
+  STDOUT.flush
 end
