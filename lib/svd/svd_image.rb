@@ -92,7 +92,7 @@ class SvdImage
 
   #returns an RMagicK::Image object and sets this SvdObject.image to that image
   #yuck this implementation seems horribly expensive
-  def svd_to_img 
+  def to_image 
     #don't compute this if we already have it
     return @image if @image
 
@@ -157,7 +157,7 @@ class SvdImage
   def write path
     #if we've called truncate, there will be @image, otherwise, make a new one
     #from the original
-    @image ||= svd_to_img
+    @image ||= to_image
 
     @image.write(path)
   end
