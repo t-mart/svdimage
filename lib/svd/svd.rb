@@ -49,6 +49,21 @@ class Svd
 
     alias :svd :decompose
 
+
+    #returns a new Svd with all values > bound replaced by bound
+    #helper function (particularly for making sure truncated SVD-compositions are
+    #below a certain value (e.g. 255, for 8 bit color per channel)
+    def upper_bound a, bound
+      size = a.size1 * a.size2
+
+      size.times do |element|
+        if a[element] > bound
+          a[element] = bound
+        end
+      end
+      
+      a
+    end
   end
 
   def initialize u, s, v_t
@@ -59,9 +74,33 @@ class Svd
 
   private_class_method :new
 
-  def compose
+  #returns the composition the components of the SVD
+  #
+  #sets instance var @a to this composition
+  #
+  #options will be applied to the return value, but not to a!
+  #as of now, the options all cause a to lose information, to it is more
+  #efficient to keep the original and just make more compositions as needed
+  def compose options = {}
+
+    defaults = { upper_bound: nil }
+
+    defaults.merge options
+
     @a ||= @u * s_diag * @v_t
-    return @a
+
+    optioned = @a
+
+    if options[:upper_bound]
+      optioned = Svd.upper_bound @a, options[:upper_bound]
+    end
+
+    if options[:lower_bound]
+      #just an example, unimplemented as of now
+      nil
+    end
+
+    return optioned
   end
 
   def s_diag
@@ -101,5 +140,4 @@ class Svd
   def cols
     @v_t.size2
   end
-
 end
