@@ -19,6 +19,9 @@ class SvdImage
                  cmyk: ['C', 'M', 'Y', 'K'],
                  gray: ['I']}
 
+  #the largest value a channel pixel can have
+  MAX_COLOR_VALUE = 255 #8 bit
+
   #k is the number of largest singular values
   attr_reader :k
   
@@ -62,12 +65,6 @@ class SvdImage
       return read_svd_file(path, colorspace) if File.extname(path) == ".svd"
       return read_image_file(path, colorspace)
     end
-
-    #def svd_channels r_svd, g_svd, b_svd
-      #new(r_svd, g_svd, b_svd)
-    #end
-
-
   end
 
   def initialize colorspace, *channel_svds
@@ -102,22 +99,43 @@ class SvdImage
     pixels = rows * cols
 
     channel_matricies = map do |channel_svd|
-      channel_svd.compose.to_a.flatten
+      channel_svd.compose(upper_bound: MAX_COLOR_VALUE).to_a.flatten
     end
+
+    #the matricies go from
+    # [ *channel1[0..n],
+    #   *channel2[0..n],
+    #   *channel3[0..n],
+    #   ...
+    # ]
+    #
+    # to
+    #
+    # [ channel1[0],channel2[0],channel3[0],
+    #   channel1[1],channel2[1],channel3[1],
+    #   ...
+    # ]  
+    #
+    # this is scanline order
+    # ex:
+    # [RRRGGGBBB] -> [RGBRGBRGB]
+    scanline_order = channel_matricies.transpose.flatten
+
+    #scanline_order.map! do |v|
+      #if v <= 255
+        #v
+      #else
+        #255
+      #end
+    #end
+
+    scanline_data = scanline_order.pack "C*"
 
     image = Magick::Image.new(cols, rows)
 
-    data = ""
-
-    pixels.times do |i|
-      channel_matricies.each do |matrix|
-        data << [matrix[i]].pack("C")
-      end
-    end
-
     colorspace_str = channel_strings.join
 
-    image.import_pixels(0, 0, cols, rows, colorspace_str, data)
+    image.import_pixels(0, 0, cols, rows, colorspace_str, scanline_data)
 
     @image = image
 
