@@ -21,6 +21,8 @@ class SvdImage
 
   #the largest value a channel pixel can have
   MAX_COLOR_VALUE = 255 #8 bit
+  #the smallest value a channel pixel can have
+  MIN_COLOR_VALUE = 0
 
   #k is the number of largest singular values
   attr_reader :k
@@ -99,8 +101,9 @@ class SvdImage
     pixels = rows * cols
 
     channel_matricies = map do |channel_svd|
-      channel_svd.compose(upper_bound: MAX_COLOR_VALUE).to_a.flatten
+      channel_svd.compose(upper_bound: MAX_COLOR_VALUE, lower_bound: MIN_COLOR_VALUE).to_a.flatten
     end
+
 
     #the matricies go from
     # [ *channel1[0..n],
@@ -120,6 +123,8 @@ class SvdImage
     # ex:
     # [RRRGGGBBB] -> [RGBRGBRGB]
     scanline_order = channel_matricies.transpose.flatten
+
+    puts scanline_order.minmax
 
     #scanline_order.map! do |v|
       #if v <= 255

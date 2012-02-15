@@ -41,7 +41,6 @@ class Svd
         #fix. here's what's going on:
         #u is v
         #v is u
-        #transpose s
         u, v, s = a.transpose.SV_decomp
         return v, s, u.transpose
       end
@@ -52,13 +51,16 @@ class Svd
 
     #returns a new Svd with all values > bound replaced by bound
     #helper function (particularly for making sure truncated SVD-compositions are
-    #below a certain value (e.g. 255, for 8 bit color per channel)
-    def upper_bound a, bound
+    #between certain values (e.g. 0-255, for 8 bit color per channel)
+    def bound a, upper, lower
       size = a.size1 * a.size2
 
-      size.times do |element|
-        if a[element] > bound
-          a[element] = bound
+      size.times do |i|
+       value = a[i] 
+        if upper and value > upper
+          a[i] = upper
+        elsif lower and value < lower
+          a[i] = lower
         end
       end
       
@@ -83,21 +85,12 @@ class Svd
   #efficient to keep the original and just make more compositions as needed
   def compose options = {}
 
-    defaults = { upper_bound: nil }
-
-    defaults.merge options
-
     @a ||= @u * s_diag * @v_t
 
     optioned = @a
 
-    if options[:upper_bound]
-      optioned = Svd.upper_bound @a, options[:upper_bound]
-    end
-
-    if options[:lower_bound]
-      #just an example, unimplemented as of now
-      nil
+    if options[:upper_bound] or options[:lower_bound]
+      optioned = Svd.bound @a, options[:upper_bound], options[:lower_bound]
     end
 
     return optioned
