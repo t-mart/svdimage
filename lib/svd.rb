@@ -5,11 +5,12 @@ require 'gsl'
 
 require 'svd/svd'
 require 'svd/svd_image'
+require 'svd/channel_svds.rb'
 
 if __FILE__ == $0
-  img = SvdImage.read("test1.jpg")
+  svdimg = SvdImage.read "cmyk.low.png", :gray
 
-  img = img.truncate 1
+  svdimg = svdimg.truncate 10
 
-  img.write("out.jpg")
+  svdimg.write("out.jpg")
 end

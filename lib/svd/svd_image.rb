@@ -7,15 +7,22 @@ class String
   end
 end
 
+#a collection of Svds corresponding to the channels of an image
 class SvdImage
 
   VERSION = '1.0.0'
 
+  #map a colorspace to it's component channels
+  #these channel strings correspond to what Magick::Image.import_pixels expects
+  #to represent a channel
+  COLORSPACES = {rgb: ['R', 'G', 'B'],
+                 cmyk: ['C', 'M', 'Y', 'K'],
+                 gray: ['I']}
+
   #k is the number of largest singular values
   attr_reader :k
   
-  #the lossless svd for each channel (no k truncation)
-  attr_reader :r_svd, :g_svd, :b_svd
+  attr_reader :colorspace, :channel_strings, :channel_svds
 
   #image is resulting RMagick image corresponding to k
   #so, this image may be compressed
@@ -23,24 +30,20 @@ class SvdImage
 
   class << self
     #in other words, RMagick can open it
-    def read_image_file path
+    def read_image_file path, colorspace
       img = Magick::Image.read(path)[0]
 
-      r, g, b = [], [], []
-
-      img.rows.times do |row|
-        r << img.export_pixels_to_str(0, row, img.columns, 1, "R").parse_bytes
-        g << img.export_pixels_to_str(0, row, img.columns, 1, "G").parse_bytes
-        b << img.export_pixels_to_str(0, row, img.columns, 1, "B").parse_bytes
+      channel_values = COLORSPACES[colorspace].map do |channel_str|
+        img.rows.times.map do |row|
+          img.export_pixels_to_str(0, row, img.columns, 1, channel_str).parse_bytes
+        end
       end
 
-      rm = Matrix.alloc(*r)
-      gm = Matrix.alloc(*g)
-      bm = Matrix.alloc(*b)
+      channel_matricies = channel_values.map do |channel|
+        Svd.a(Matrix.alloc(*channel))
+      end
 
-      svdimage = new(Svd.a(rm), Svd.a(gm), Svd.a(bm))
-
-      return svdimage
+      new colorspace, *channel_matricies
     end
 
     #my own file format
@@ -53,25 +56,42 @@ class SvdImage
 
     #choose one of the above methods based on file extension, or maybe some
     #inspection?
-    def read path
-      return read_svd_file path if File.extname(path) == ".svd"
-      return read_image_file path
+    def read path, colorspace
+      raise(ArgumentError, "\"#{colorspace}\" not a valid colorspace. pick one of #{COLORSPACES.keys}") unless COLORSPACES.keys.include? colorspace
+
+      return read_svd_file(path, colorspace) if File.extname(path) == ".svd"
+      return read_image_file(path, colorspace)
     end
 
-    def svd_channels r_svd, g_svd, b_svd
-      new(r_svd, g_svd, b_svd)
-    end
+    #def svd_channels r_svd, g_svd, b_svd
+      #new(r_svd, g_svd, b_svd)
+    #end
+
 
   end
 
-  def initialize r_svd, g_svd, b_svd
-    @r_svd = r_svd
-    @g_svd = g_svd
-    @b_svd = b_svd
+  def initialize colorspace, *channel_svds
+    raise(ArgumentError, "not a valid colorspace. pick one of #{COLORSPACES.keys}") unless COLORSPACES.keys.include? colorspace
+
+    raise(ArgumentError, "size of channel_svds must match colorspace's expectations") unless channel_svds.size == COLORSPACES[colorspace].size
+
+    @colorspace = colorspace
+
+    @channel_svds = channel_svds
   end
 
   #use read
   private_class_method :new
+
+  def channel_strings
+    COLORSPACES[@colorspace]
+  end
+
+  def each
+    @channel_svds.each { |svd| yield svd }
+  end
+
+  include Enumerable
 
   #returns an RMagicK::Image object and sets this SvdObject.image to that image
   #yuck this implementation seems horribly expensive
@@ -79,35 +99,38 @@ class SvdImage
     #don't compute this if we already have it
     return @image if @image
 
-    rows = @r_svd.rows
-    cols = @r_svd.cols
     pixels = rows * cols
 
-    r_matrix = @r_svd.compose.to_a.flatten
-    g_matrix = @g_svd.compose.to_a.flatten
-    b_matrix = @b_svd.compose.to_a.flatten
+    channel_matricies = map do |channel_svd|
+      channel_svd.compose.to_a.flatten
+    end
 
     image = Magick::Image.new(cols, rows)
 
     data = ""
 
     pixels.times do |i|
-      data << [r_matrix[i].truncate].pack("C")
-      data << [g_matrix[i].truncate].pack("C")
-      data << [b_matrix[i].truncate].pack("C")
+      channel_matricies.each do |matrix|
+        data << [matrix[i]].pack("C")
+      end
     end
 
-    image.import_pixels(0, 0, cols, rows, "RGB", data)
+    colorspace_str = channel_strings.join
+
+    image.import_pixels(0, 0, cols, rows, colorspace_str, data)
 
     @image = image
-    return image
+
+    image
   end
 
   #return a new truncated SvdImage
   def truncate k
-    return SvdImage.svd_channels(@r_svd.truncate(k),
-               @g_svd.truncate(k),
-               @b_svd.truncate(k))
+    truncated = map do |channel|
+      channel.truncate k
+    end
+  
+    self.class.send( :new, @colorspace, *truncated )
   end
 
   #write out the image corresponding to the r, g, and b svd's of this object
@@ -119,5 +142,17 @@ class SvdImage
     @image ||= svd_to_img
 
     @image.write(path)
+  end
+
+  #returs the rows of the composed matrix
+  def rows
+    #these should all be the same
+    @channel_svds[0].rows
+  end
+
+  #returs the columns of the composed matrix
+  def cols
+    #again, these should all be the same
+    @channel_svds[0].cols
   end
 end
