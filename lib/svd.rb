@@ -6,16 +6,23 @@ require 'gsl'
 require 'svd/svd'
 require 'svd/svd_image'
 
+module Svd
+
+  VERSION = '1.0.0'
+
+
+end
+
 if __FILE__ == $0
   #use jpgs to see decrease in file size!
   #
   #i think png isn't utilizing palette because size says the same after
   #different truncations
 
-  infile = "wide.jpg"
+  infile = "tall.jpg"
   colorspace = :rgb
 
-  truncate_to = 100
+  truncate_to = 150
 
   outfile = "out#{File.extname(infile)}"
 

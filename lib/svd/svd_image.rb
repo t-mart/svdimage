@@ -10,8 +10,6 @@ end
 #a collection of Svds corresponding to the channels of an image
 class SvdImage
 
-  VERSION = '1.0.0'
-
   #map a colorspace to it's component channels
   #these channel strings correspond to what Magick::Image.import_pixels expects
   #to represent a channel
