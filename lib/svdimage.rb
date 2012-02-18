@@ -3,13 +3,12 @@ $: << File.dirname(__FILE__)
 require 'RMagick'
 require 'gsl'
 
-require 'svd/svd'
-require 'svd/svd_image'
+require 'svdimage/svd'
+require 'svdimage/image'
 
-module Svd
+module SvdImage
 
   VERSION = '1.0.0'
-
 
 end
 
@@ -32,7 +31,7 @@ if __FILE__ == $0
 
   print "SVD-ing image..."
   STDOUT.flush
-  svdimg = SvdImage.read infile, colorspace
+  svdimg = SvdImage::Image.read infile, colorspace
   puts "done."
   STDOUT.flush
 
