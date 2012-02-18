@@ -1,12 +1,5 @@
 include GSL
 
-class String
-  #parse a string (from export_pixels_to_str) into an array of bytes
-  def parse_bytes
-    bytes.inject(Array.new) { |all, next_byte| all << next_byte }
-  end
-end
-
 #a collection of Svds corresponding to the channels of an image
 class SvdImage
 
@@ -40,7 +33,7 @@ class SvdImage
 
       channel_values = COLORSPACES[colorspace].map do |channel_str|
         img.rows.times.map do |row|
-          img.export_pixels_to_str(0, row, img.columns, 1, channel_str).parse_bytes
+          img.export_pixels_to_str(0, row, img.columns, 1, channel_str).bytes.to_a
         end
       end
 
