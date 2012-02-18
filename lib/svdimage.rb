@@ -3,8 +3,14 @@ $: << File.dirname(__FILE__)
 require 'RMagick'
 require 'gsl'
 
-require 'svd/svd'
-require 'svd/svd_image'
+require 'svdimage/svd'
+require 'svdimage/image'
+
+module SvdImage
+
+  VERSION = '1.0.0'
+
+end
 
 if __FILE__ == $0
   #use jpgs to see decrease in file size!
@@ -12,10 +18,10 @@ if __FILE__ == $0
   #i think png isn't utilizing palette because size says the same after
   #different truncations
 
-  infile = "wide.jpg"
+  infile = "tall.jpg"
   colorspace = :rgb
 
-  truncate_to = 100
+  truncate_to = 150
 
   outfile = "out#{File.extname(infile)}"
 
@@ -25,7 +31,7 @@ if __FILE__ == $0
 
   print "SVD-ing image..."
   STDOUT.flush
-  svdimg = SvdImage.read infile, colorspace
+  svdimg = SvdImage::Image.read infile, colorspace
   puts "done."
   STDOUT.flush
 
