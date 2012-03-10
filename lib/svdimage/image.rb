@@ -1,4 +1,4 @@
-include GSL
+#include GSL
 
 module SvdImage
   #a collection of Svds corresponding to the channels of an image
@@ -16,6 +16,8 @@ module SvdImage
     #the smallest value a channel pixel can have
     MIN_COLOR_VALUE = 0
 
+    SVD_EXTNAME = '.svd'
+
     #k is the number of largest singular values
     attr_reader :k
     
@@ -28,6 +30,8 @@ module SvdImage
     class << self
       #in other words, RMagick can open it
       def read_image_file path, colorspace
+        raise(ArgumentError, "\"#{colorspace}\" not a valid colorspace. pick one of #{COLORSPACES.keys}") unless COLORSPACES.keys.include? colorspace
+
         img = Magick::Image.read(path)[0]
 
         channel_values = COLORSPACES[colorspace].map do |channel_str|
@@ -46,17 +50,18 @@ module SvdImage
       #my own file format
       #considering the audience, minimal sanity checks will be done
       def read_svd_file path
-
+        File.open(path) do |f|
+          Marshal.load(f)
+        end
       end
 
       #private :read_image_file, :read_svd_file
 
       #choose one of the above methods based on file extension, or maybe some
       #inspection?
-      def read path, colorspace
-        raise(ArgumentError, "\"#{colorspace}\" not a valid colorspace. pick one of #{COLORSPACES.keys}") unless COLORSPACES.keys.include? colorspace
+      def read path, colorspace=nil
 
-        return read_svd_file(path, colorspace) if File.extname(path) == ".svd"
+        return read_svd_file(path) if File.extname(path) == SVD_EXTNAME
         return read_image_file(path, colorspace)
       end
     end
@@ -148,10 +153,30 @@ module SvdImage
       self.class.send( :new, @colorspace, *truncated )
     end
 
-    #write out the image corresponding to the r, g, and b svd's of this object
+    #write out the image corresponding to the channel svd's of this object
     #inspect the extenstion to see if we should write in svd format or another
     #format that RMagick can handle
     def write path
+      return write_svd_format(path) if File.extname(path) == SVD_EXTNAME
+      return write_standard_format(path)
+    end
+
+    #returns the rows of the composed matrix
+    def rows
+      #these should all be the same
+      @channel_svds[0].rows
+    end
+
+    #returns the columns of the composed matrix
+    def cols
+      #again, these should all be the same
+      @channel_svds[0].cols
+    end
+
+    #private
+
+    #standard format is a format RMagick knows how to handle.
+    def write_standard_format(path)
       #if we've called truncate, there will be @image, otherwise, make a new one
       #from the original
       @image ||= to_image
@@ -159,16 +184,28 @@ module SvdImage
       @image.write(path)
     end
 
-    #returs the rows of the composed matrix
-    def rows
-      #these should all be the same
-      @channel_svds[0].rows
+    #my own format
+    def write_svd_format(path)
+      File.open(path, 'w') do |f|
+        Marshal.dump(self, f)
+      end
     end
 
-    #returs the columns of the composed matrix
-    def cols
-      #again, these should all be the same
-      @channel_svds[0].cols
+    def marshal_dump
+      channel_matricies = @channel_svds.map do |channel|
+        channel.a.to_a
+      end
+
+      {colorspace: @colorspace, channel_svds: channel_matricies}
     end
+
+    def marshal_load data
+      @colorspace = data[:colorspace]
+      @channel_svds = []
+      data[:channel_svds].each do |channel_array|
+        @channel_svds << SvdImage::Svd.a(Matrix.alloc(*channel_array))
+      end
+    end
+
   end
 end

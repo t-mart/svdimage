@@ -1,3 +1,5 @@
 reference/
 *.jpg
 *.png
+#my own image format
+*.svd

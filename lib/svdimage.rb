@@ -18,10 +18,10 @@ if __FILE__ == $0
   #i think png isn't utilizing palette because size says the same after
   #different truncations
 
-  infile = "tall.jpg"
+  infile = "wide.jpg"
   colorspace = :rgb
 
-  truncate_to = 150
+  truncate_to = 50
 
   outfile = "out#{File.extname(infile)}"
 
@@ -43,7 +43,10 @@ if __FILE__ == $0
 
   print "Writing image..."
   STDOUT.flush
-  svdimg.write outfile
+  svdimg.write outfile + ".svd"
   puts "done."
   STDOUT.flush
+
+  svdimg = SvdImage::Image.read outfile + ".svd"
+  svdimg.write "outsvd#{File.extname(infile)}"
 end

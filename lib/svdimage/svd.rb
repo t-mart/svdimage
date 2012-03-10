@@ -23,7 +23,7 @@ module SvdImage
       def a a
         u, s, v_t = decompose a
 
-        return new(u, s, v_t)
+        return new(u, s, v_t, a)
       end
 
       def usvt u, s, v_t
@@ -31,8 +31,11 @@ module SvdImage
       end
 
       def decompose a
+        start = Time.now
         begin
           u, v, s = a.SV_decomp
+          print "(#{(Time.now - start).round(4)}s) "
+          STDOUT.flush
           return u, s, v.transpose
         rescue ERROR::EUNIMPL
           #happens when the matrix is wider than it is tall
@@ -41,6 +44,8 @@ module SvdImage
           #u is v
           #v is u
           u, v, s = a.transpose.SV_decomp
+          print "(#{(Time.now - start).round(4)}s) "
+          STDOUT.flush
           return v, s, u.transpose
         end
       end
@@ -67,10 +72,16 @@ module SvdImage
       end
     end
 
-    def initialize u, s, v_t
+    #allowing the user to provide u, s, and v_t AND a may be dangerous because
+    #these should be coupled, and may not be. however, it would prolly save us
+    #time not to have to do the matrix mult
+    def initialize u, s, v_t, a = nil
       @u, @s, @v_t = u, s, v_t
 
-      @a = compose
+      #puts "a is#{" not" if a.nil?} present"
+      #s = Time.now
+      @a = a || compose
+      #puts "took #{Time.now - s} seconds to get a"
     end
 
     private_class_method :new
@@ -81,7 +92,7 @@ module SvdImage
     #
     #options will be applied to the return value, but not to a!
     #as of now, the options all cause a to lose information, to it is more
-    #efficient to keep the original and just make more compositions as needed
+    #reasonable to keep the original and just make more compositions as needed
     def compose options = {}
 
       @a ||= @u * s_diag * @v_t
