@@ -1,4 +1,4 @@
 source "http://rubygems.org"
 
-gem "rmagick"
-gem "gsl"
+# Specify your gem's dependencies in svdimage.gemspec
+gemspec

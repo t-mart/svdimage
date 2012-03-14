@@ -5,10 +5,9 @@ require 'gsl'
 
 require 'svdimage/svd'
 require 'svdimage/image'
+require 'svdimage/version'
 
 module SvdImage
-
-  VERSION = '1.0.0'
 
 end
 
