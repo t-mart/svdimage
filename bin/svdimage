@@ -1,3 +1,25 @@
 #!/usr/bin/env ruby
 
-abort "you need to write me"
+require 'svdimage'
+require 'slop'
+
+DEFAULT_SIGMA_THRESHOLD = 0.0002
+
+slop_config = { strict: true, help: true }
+
+opts = Slop.parse(slop_config) do
+  banner 'USAGE: svdimage input-image output-image [options]'
+  on '-c', '--colorspace', 'Defines the colorspace of output-image. Must be "rgb", "gray", or "cmyk". Defaults to "rgb"', :argument => :optional
+  on '-k', 'Truncates the singular value decomposition s.t. the rank of the matrix = k. May not be used with -a/--auto-k.', :argument => true
+  on '-a', '--auto-k', 'Truncates the SVD to a rank determined by the unique singular values of input-file. See the documentation for more detail on how this value is determined. Optionally, you can specify a floating point number argument for this option. This number is the "sigma-ratio" threshold (again, see the docs for how this works). Set to 0.0002 by default. May not be used with -k', :argument => :optional
+end
+
+opts_h = opts.to_hash
+
+#things that the user may mess up
+abort("#{ARGV[0]} is not a file") unless File.file? ARGV[0]
+#abort("#{ARGV[1]} is not a file") unless File.file? ARGV[1]
+
+opts_h[:colorspace] ||= "rgb"
+abort("#{opts_h[:colorspace]} not a valid colorspace. Must be \"rgb\", \"gray\", or \"cmyk\"") unless SvdImage::Image::COLORSPACES.keys.include? opts_h[:colorspace].to_sym
+
