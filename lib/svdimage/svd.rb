@@ -113,7 +113,7 @@ module SvdImage
     #return a new svd object that's been truncated
     #note this doesn't affect the original u, s, and v_t
     def truncate k
-      raise(ArgumentError, "k may not be > than total singular values (#{n_sigmas}) or < 1") if k > n_sigmas || k < 1
+      raise(ArgumentError, "k (#{k}) may not be > than total singular values (#{n_sigmas}) or < 1") if (k > n_sigmas) || (k < 1)
 
       return self if k == n_sigmas
 
@@ -128,6 +128,40 @@ module SvdImage
       trun_v_t = v_t.submatrix(r, nil)
 
       return Svd.usvt(trun_u, trun_s, trun_v_t)
+    end
+
+    def choose_k threshold
+      (1..n_sigmas).to_a.each do |k|
+        if sigma_ratio(k) <= threshold
+          p "we're going with k=#{k} because sigma_ratio=#{sigma_ratio(k)}"
+          STDOUT.flush
+          return k 
+        end
+      end
+      #k = n_sigmas
+      #while sigma_ratio(k) > threshold
+        #k -= 1
+      #end
+      #k
+    end
+
+    # calculates 
+    #
+    # sigma_(k+1)^2 + sigma_(k+2)^2 + ... + sigma_(n)^2
+    # ------------------------------------------------- (divided by)
+    # sigma_(1)^2 + sigma_(2)^2 + ... + sigma_(k)^2
+    #
+    # this is the proportion of sigmas we don't use to sigmas we do use
+    # gives a notion of how much information we are retaining with our chosen k
+    #
+    # as k increases, the sigma_ratio decreases
+    def sigma_ratio k
+      unused = @s.to_a[(k+1)..n_sigmas]
+      used = @s.to_a[0..k]
+
+      return 0 if unused.nil?
+
+      ratio = (unused.inject(0) { |total, sigma| total += sigma**2 }.to_f) / (used.inject(0) { |total, sigma| total += sigma**2 })
     end
 
     def n_sigmas

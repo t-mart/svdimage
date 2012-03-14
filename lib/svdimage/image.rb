@@ -153,6 +153,16 @@ module SvdImage
       self.class.send( :new, @colorspace, *truncated )
     end
 
+    #return a new truncated SvdImage trucated with a value k determined by each
+    #channel's sigma ratio < threshold
+    def truncate_choosing_k threshold
+      truncated = map do |channel|
+        channel.truncate(channel.choose_k(threshold))
+      end
+    
+      self.class.send( :new, @colorspace, *truncated )
+    end
+
     #write out the image corresponding to the channel svd's of this object
     #inspect the extenstion to see if we should write in svd format or another
     #format that RMagick can handle
