@@ -20,5 +20,5 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rmagick'
   s.add_development_dependency 'gsl'
-  s.add_development_dependency 'slop'
+  s.add_development_dependency 'minitest'
 end
