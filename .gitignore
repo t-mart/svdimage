@@ -10,3 +10,9 @@ reference/
 .bundle
 Gemfile.lock
 pkg/*
+
+#manual cruft
+doc/*.aux
+doc/*.dvi
+doc/*.log
+doc/*.pdf
