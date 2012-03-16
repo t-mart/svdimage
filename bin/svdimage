@@ -19,7 +19,7 @@ class SvdImageCli
     options.colorspace = :rgb
 
     opts = OptionParser.new do |opts|
-      opts.banner = "Usage: svdimage input-image output-image [options]"
+      opts.banner = "Usage: svdimage INPUT_IMAGE OUTPUT-IMAGE [OPTIONS]"
 
       opts.on("-c", "--colorspace COLORSPACE", [:rgb, :cmyk, :gray],
               'Defines the colorspace of output-image.',
