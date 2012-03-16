@@ -1,8 +1,13 @@
 \documentclass[12pt,letterpaper]{article}
 
-\usepackage{keystroke}
+%\usepackage{keystroke}
+\usepackage{amsmath}
+\usepackage{algpseudocode}
 
-\newcommand{\svdimage}{\texttt{SvdImage }}
+%if i don't put that trailing space, spaces after \svdimage wont show
+%like this "SvdImageis cool beans"
+%don't know why
+\newcommand{\svdimage}{\texttt{SvdImage} }
 
 \newcommand{\codeitem}[2]{\item[\texttt{\%> #1}] \hfill \\ #2}
 
@@ -71,15 +76,21 @@ These tell \svdimage that you would like to try to find a good truncation
 automatically. This truncation is unique to to the image's singular values and
 the sigma threshold. First, we set our sigma threshold equal to some value. By
 default, \svdimage uses 0.2, but you may also specify this yourself by providing
-an argument to the \texttt{-a}/\texttt{--auto-k} flags. Then, starting with a
-$k=1$, we iterate through all $k$ until:
+an argument to the \texttt{-a}/\texttt{--auto-k} flags. Here is psuedocode for
+the algorithm:
 
-\begin{equation}
-\mbox{sigma\_threshold} \geq \frac{\sum_{n=k+1}^{t} \sqrt{\sigma_{n}^{2}}}{\sum_{n=1}^{t} \sqrt{\sigma_{n}^{2}}}
-\end{equation}
+%algorithmic doesn't like \operatorname
+\begin{algorithmic}
+  \Require $0 \leq \operatorname{sigma\_threshold} < 1$
+  \For{$k = 1 \to \operatorname{k\_max}$}
+    \If{$ \operatorname{sigma\_threshold} \geq \frac{\sum_{i=k+1}^{t} \sqrt{\sigma_{i}^{2}}}{\sum_{i=1}^{t} \sqrt{\sigma_{i}^{2}}}$}
+      \Return $k$
+    \EndIf
+  \EndFor
+\end{algorithmic}
 
-Intuitively, you may think of this as leaving out $\mbox{sigma\_threshold}\%$ of
-the image's information, but this is not exactly correct.
+Intuitively, you may think of this as leaving out
+$(\operatorname{sigma\_threshold})\%$ of the image's information.
 
 \section{Question}
 The project poses a question:
@@ -92,10 +103,10 @@ keep the portrait recognizable? In other words (roughly), what is the rank of a 
 face?
 \end{quote}
 
-I believe I have answered this question with my explanation of the sigma ratio threshold. A good $k$ is not
-dependent on 255 or just being small, but it is instead dependent on the
-complexity of the image. $k$ must be chosen such that you do not lose too much
-information from the image.
+I believe I have answered this question with my explanation of the sigma ratio
+threshold. A good $k$ is not dependent on 255 or just being small, but it is
+instead dependent on the complexity of the image. $k$ must be chosen such that
+you do not lose too much information from the image.
 
 \section{Requirements}
 \subsection{System}
@@ -119,6 +130,8 @@ contact me!
 \begin{description}
 \codeitem{tar -xzvf svdimage-0.1.0.tar.gz}{Extract the archive contents.}
 \codeitem{cd svdimage-0.1.0/}{Change into the \svdimage directory.}
+\codeitem{bundle install}{Install all \svdimage dependency gems to your
+system.}
 \codeitem{rake install}{Install \svdimage to your system.}
 \end{description}
 And that's it! \svdimage should be in your \texttt{\$PATH} and you can start
@@ -149,7 +162,7 @@ Usage: svdimage INPUT_IMAGE OUTPUT_IMAGE [OPTIONS]
 \section{Examples}
 For the following examples, you must have 
 \begin{description}
-\codeitem{svdimage in.jpg out.jpg -k 100}{Truncate \texttt{in.jpg} to have a rank of 100 and write it out as \texttt{out.jpg}. Ranks must be $1 \leq k < \min(\mbox{image\_height}, \mbox{image\_width})$.}
+\codeitem{svdimage in.jpg out.jpg -k 100}{Truncate \texttt{in.jpg} to have a rank of 100 and write it out as \texttt{out.jpg}. Ranks must be $1 \leq k < \min(\operatorname{image\_height}, \operatorname{image\_width})$.}
 \codeitem{svdimage format1.png format2.gif -k 100}{Like previous, but notice how you can use file formats interchangeably.}
 \codeitem{svdimage in.jpg out.jpg -a}{Truncate \texttt{in.jpg} to a ``reasonable'' rank. This algorithm attempts to remove unneeded ranks, but what ranks you consider unneeded may differ from me!}
 \codeitem{svdimage in.jpg out.jpg -a 0.05}{Like previous, but with a specification of the sigma ratio. See the respective section for more information on how to use this.}
