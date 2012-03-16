@@ -31,10 +31,10 @@ module SvdImage
       end
 
       def decompose a
-        start = Time.now
+        #start = Time.now
         begin
           u, v, s = a.SV_decomp
-          print "(#{(Time.now - start).round(4)}s) "
+          #print "(#{(Time.now - start).round(4)}s) "
           STDOUT.flush
           return u, s, v.transpose
         rescue ERROR::EUNIMPL
@@ -44,7 +44,7 @@ module SvdImage
           #u is v
           #v is u
           u, v, s = a.transpose.SV_decomp
-          print "(#{(Time.now - start).round(4)}s) "
+          #print "(#{(Time.now - start).round(4)}s) "
           STDOUT.flush
           return v, s, u.transpose
         end
@@ -113,7 +113,7 @@ module SvdImage
     #return a new svd object that's been truncated
     #note this doesn't affect the original u, s, and v_t
     def truncate k
-      raise(ArgumentError, "k (#{k}) may not be > than total singular values (#{n_sigmas}) or < 1") if (k > n_sigmas) || (k < 1)
+      raise(ArgumentError, "must have 0 < k < number_singular_values (#{n_sigmas})") if (k >= n_sigmas) || (k < 1)
 
       return self if k == n_sigmas
 
@@ -133,16 +133,11 @@ module SvdImage
     def choose_k threshold
       (1..n_sigmas).to_a.each do |k|
         if sigma_ratio(k) <= threshold
-          p "we're going with k=#{k} because sigma_ratio=#{sigma_ratio(k)}"
+          #p "we're going with k=#{k} because sigma_ratio=#{sigma_ratio(k)}"
           STDOUT.flush
           return k 
         end
       end
-      #k = n_sigmas
-      #while sigma_ratio(k) > threshold
-        #k -= 1
-      #end
-      #k
     end
 
     # calculates 
@@ -157,11 +152,11 @@ module SvdImage
     # as k increases, the sigma_ratio decreases
     def sigma_ratio k
       unused = @s.to_a[(k+1)..n_sigmas]
-      used = @s.to_a[0..k]
+      used = @s.to_a
 
       return 0 if unused.nil?
 
-      ratio = (unused.inject(0) { |total, sigma| total += sigma**2 }.to_f) / (used.inject(0) { |total, sigma| total += sigma**2 })
+      ratio = (unused.inject(0) { |total, sigma| total += (sigma**2)**(0.5) }.to_f) / (used.inject(0) { |total, sigma| total += (sigma**2)**0.5 })
     end
 
     def n_sigmas

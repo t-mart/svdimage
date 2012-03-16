@@ -1,65 +1,135 @@
 #!/usr/bin/env ruby
 
 require 'svdimage'
-#require 'slop'
 require 'optparse'
 require 'ostruct'
 
-DEFAULT_SIGMA_THRESHOLD = 0.0002
-
-#slop_config = { strict: true, help: true }
-
-#opts = Slop.parse(slop_config) do
-  #banner 'USAGE: svdimage input-image output-image [options]'
-  #on '-c', '--colorspace', 'Defines the colorspace of output-image. Must be "rgb", "gray", or "cmyk". Defaults to "rgb"', :argument => :optional
-  #on '-k', 'Truncates the singular value decomposition s.t. the rank of the matrix = k. May not be used with -a/--auto-k.', :argument => true
-  #on '-a', '--auto-k', 'Truncates the SVD to a rank determined by the unique singular values of input-file. See the documentation for more detail on how this value is determined. Optionally, you can specify a floating point number argument for this option. This number is the "sigma-ratio" threshold (again, see the docs for how this works). Set to 0.0002 by default. May not be used with -k', :argument => :optional
-#end
-
-#opts_h = opts.to_hash
-
-##things that the user may mess up
-#abort("#{ARGV[0]} is not a file") unless File.file? ARGV[0]
-##abort("#{ARGV[1]} is not a file") unless File.file? ARGV[1]
-
-#opts_h[:colorspace] ||= "rgb"
-#abort("#{opts_h[:colorspace]} not a valid colorspace. Must be \"rgb\", \"gray\", or \"cmyk\"") unless SvdImage::Image::COLORSPACES.keys.include? opts_h[:colorspace].to_sym
+DEFAULT_SIGMA_THRESHOLD = 0.2
+VERSION_STRING = "SvdImage v#{SvdImage::VERSION} by Tim Martin"
 
 class SvdImageCli
 
-  def self.parse(args)
+  attr_reader :opts, :options
+
+  def initialize(args)
+    # The options specified on the command line will be collected in *options*.
+    # We set default values here.
     options = OpenStruct.new
-    options.library = []
-    options.inplace = false
-    options.encoding = "utf8"
-    options.transfer_type = :auto
     options.verbose = false
+    options.colorspace = :rgb
 
     opts = OptionParser.new do |opts|
       opts.banner = "Usage: svdimage input-image output-image [options]"
 
-      opts.on("-c", "--colorspace",'Defines the colorspace of output-image. Must be "rgb", "gray", or "cmyk". Defaults to "rgb"') do |cs|
-        options[:colorspace] = cs
+      opts.on("-c", "--colorspace COLORSPACE", [:rgb, :cmyk, :gray],
+              'Defines the colorspace of output-image.',
+              '  Must be "rgb", "gray", or "cmyk".',
+              '  Defaults to "rgb".') do |cs|
+        options.colorspace = cs
       end
 
-      opts.on("-k",'Truncates the singular value decomposition s.t. the rank of the matrix = k. May not be used with -a/--auto-k') do |k|
-        options[:k] = k
+      opts.on("-k RANK", Integer,
+              'Truncates the SVD to rank RANK. May not be',
+              '  used with -a/--auto-k') do |k|
+        options.k = k
       end
 
-      opts.on('-a', '--auto-k', 'Truncates the SVD to a rank determined by the unique singular values of input-file. See the documentation for more detail on how this value is determined. Optionally, you can specify a floating point number argument for this option. This number is the "sigma-ratio" threshold (again, see the docs for how this works). Set to 0.0002 by default. May not be used with -k') do |a|
-        options[:a] = a
+      opts.on('-a', '--auto-k [SIGMA_THRESHOLD]', Float,
+              'Truncates the SVD to a rank determined by', 
+              '  the unique singular values of input-file.',
+              '  Compares the sum of the sqaure roots of', 
+              '  the squares of the singular values to',
+              '  SIMGA_THRESHOLD, which may be provided as',
+              "  an argument or defaults to #{DEFAULT_SIGMA_THRESHOLD}.", 
+              '  May not be used with -k') do |sigma_threshold|
+        options.sigma_threshold = DEFAULT_SIGMA_THRESHOLD
+        options.sigma_threshold = sigma_threshold unless sigma_threshold.nil?
       end
 
-      opts.on("-h", "--help", "Show this message") do
+      opts.separator ""
+
+      # No argument, shows at tail.  This will print an options summary.
+      # Try it and see!
+      opts.on_tail("-h", "--help", "Show this message") do
+        puts VERSION_STRING
         puts opts
+        exit
+      end
+
+      # Another typical switch to print the version.
+      opts.on_tail("--version", "Show version") do
+        puts VERSION_STRING
         exit
       end
     end
 
-    opts.parse!(args)
-    options
+    @opts = opts
+    @parsed = opts.parse(args)
+    @options = options
   end
+
+end  # class OptparseExample
+
+begin
+  cli = SvdImageCli.new(ARGV)
+rescue OptionParser::ParseError => e
+  puts "#{e.reason} for #{e.args}"
+  exit false
 end
 
-options = SvdImageCli.parse(ARGV)
+options = cli.options
 
+#p options
+
+puts VERSION_STRING
+
+if ARGV[0].nil?
+  puts cli.opts.help
+  exit false
+end
+
+unless File.file? ARGV[0]
+  puts "input file \"#{ARGV[0]}\" is not a valid file"
+  exit false
+end
+
+infile = ARGV[0]
+
+#this is pretty hackish, but im requiring that the 2nd arg isn't an
+#option, and this somewhat checks that.
+#
+#for example: "svdimage in -k 1", well, where's the output file?
+if ARGV[1][0] == "-"
+  puts "output file \"#{ARGV[1]}\" must be a file name"
+end
+
+outfile = ARGV[1]
+
+#if sigma_threshold is set, then they've provided a "-a", which we're not going
+#to accept in addition to "-k"
+if options.sigma_threshold and options.k
+  puts "Both \"-k\" and \"-a\" cannot be provided"
+  exit false
+end
+
+puts "#{infile} -> #{outfile}"
+puts "colorspace: #{options.colorspace.to_s}"
+
+svdimg = SvdImage::Image.read infile, options.colorspace
+
+begin
+  if options.sigma_threshold
+    puts "k: Automatically being chosen with sigma_threshold = #{options.sigma_threshold}"
+    STDOUT.flush
+    svdimg = svdimg.truncate_choosing_k options.sigma_threshold
+  elsif options.k
+    puts "k: #{options.k}"
+    STDOUT.flush
+    svdimg = svdimg.truncate options.k
+  end
+rescue ArgumentError => e
+  puts e.message
+end
+
+svdimg.write outfile
+exit(true)

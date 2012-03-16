@@ -121,7 +121,7 @@ module SvdImage
       # [RRRGGGBBB] -> [RGBRGBRGB]
       scanline_order = channel_matricies.transpose.flatten
 
-      puts scanline_order.minmax
+      #puts scanline_order.minmax
 
       #scanline_order.map! do |v|
         #if v <= 255
@@ -150,16 +150,27 @@ module SvdImage
         channel.truncate k
       end
     
+      each_with_index do |channel, i|
+        puts "#{@colorspace[i]} channel: sigma_{0} = #{channel.s[0].to_f.round{4}}, sigma_{#{k}} = #{channel.s[k].to_f.round{4}}"
+      end
+
       self.class.send( :new, @colorspace, *truncated )
     end
 
     #return a new truncated SvdImage trucated with a value k determined by each
     #channel's sigma ratio < threshold
     def truncate_choosing_k threshold
+      kvals = []
       truncated = map do |channel|
-        channel.truncate(channel.choose_k(threshold))
+        k = channel.choose_k(threshold)
+        kvals << k
+        channel.truncate(k)
       end
     
+      each_with_index do |channel, i|
+        puts "#{@colorspace[i]} channel: sigma_{0} = #{channel.s[0].to_f.round{4}}, sigma_{#{kvals[i]}} = #{channel.s[kvals[i]].to_f.round{4}}"
+      end
+
       self.class.send( :new, @colorspace, *truncated )
     end
 
