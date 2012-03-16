@@ -131,6 +131,7 @@ module SvdImage
     end
 
     def choose_k threshold
+      raise(ArgumentError, "must have 0 < threshold < 1 ") if threshold <= 0 or threshold >= 1
       (1..n_sigmas).to_a.each do |k|
         if sigma_ratio(k) <= threshold
           #p "we're going with k=#{k} because sigma_ratio=#{sigma_ratio(k)}"
